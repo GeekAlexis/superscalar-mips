@@ -47,7 +47,7 @@ module data_path(input clk, reset,
     sl16 lui_sh(instrD[15:0], sh_immD);
     signext se(instrD[15:0], se_immD);
     zeroext ze(instrD[15:0], ze_immD);
-    mux2#(32) ext_muxD(se_immD, ze_immD, se_zeD, ext_immD);
+    mux2#(32) ext_muxD(ze_immD, se_immD, se_zeD, ext_immD);
     sl2 jump_sh(se_immD, sl2_outD);
     assign pcbranchD = sl2_outD + pcplus4D;
     assign pcjumpD = {pcplus4D[31:28], instrD[25:0], 2'b0};
