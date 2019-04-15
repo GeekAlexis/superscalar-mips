@@ -17,25 +17,6 @@ module controller(input [5:0] op, func,
 	reg [16:0] controls;
 	assign {memwrite, regwrite, memtoreg, regdst, alusrc, se_ze, eq_ne, branch, jump, start_mult, mult_sign, out_sel, alu_op} = controls;
 	assign branch_cond = (eq_ne) ? equal : ~equal;
-	module controller(input [5:0] op, func,
-                  input equal,
-                  output memwrite,
-                  output regwrite,
-                  output memtoreg,
-                  output regdst,
-                  output alusrc,
-                  output se_ze,
-                  output branch,
-		  output start_mult,
-		  output mult_sign,
-                  output [3:0] alu_op,
-                  output [1:0] out_sel,
-                  output [1:0] pcsrc);
-    
-	wire eq_ne, jump, branch_cond;
-	reg [16:0] controls;
-	assign {memwrite, regwrite, memtoreg, regdst, alusrc, se_ze, eq_ne, branch, jump, start_mult, mult_sign, out_sel, alu_op} = controls;
-	assign branch_cond = (eq_ne) ? equal : ~equal;
 	assign pcsrc = (branch_cond & branch) ? 2'b01 : (jump) ? 2'b10 : 2'b00;
 	               
   	always@(*) begin
