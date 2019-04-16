@@ -16,12 +16,13 @@ module controller(input [5:0] op, func,
 	wire eq_ne, jump, branch_cond;
 	reg [16:0] controls;
 	assign {memwrite, regwrite, memtoreg, regdst, alusrc, se_ze, eq_ne, branch, jump, start_mult, mult_sign, out_sel, alu_op} = controls;
-	assign branch_cond = (eq_ne) ? equal : ~equal;
-	assign pcsrc = (branch_cond & branch) ? 2'b01 : (jump) ? 2'b10 : 2'b00;
+	assign branch_cond = (eq_ne) ? equal : ~equal; // branch condition determined by beq or bne
+	assign pcsrc = (branch_cond & branch) ? 2'b01 : (jump) ? 2'b10 : 2'b00; // pcsrc determines jump, branch, or normal pc + 4 for program counter
 	               
   	always@(*) begin
             case(op)
       		6'h0: 
+		    // R type instructions
       		    case(func)
       		        6'h20, 6'h21: controls = 17'b01010000000000100; // add / addu
       		        6'h22, 6'h23: controls = 17'b01010000000001100; // sub / subu
