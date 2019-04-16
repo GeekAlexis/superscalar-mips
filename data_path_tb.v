@@ -25,8 +25,7 @@ module data_path_tb;
         #5;
     end
     
-    // 4985
-    // 12 t4
+    // dot product result 4985
     // check results
     always @(negedge clk) begin
         if(memwriteM) begin
