@@ -1,15 +1,13 @@
 // top level module
-module data_path(input clk, reset,
-                 output [31:0] pcF, instrD, outM, writedataM, readdataM, 
-                 output memwriteM);
+module data_path(input clk, reset);
     
     // fetch stage signals
-    wire [31:0] pcplus4F, pc_next; //pcF;
+    wire [31:0] pcplus4F, pc_next, pcF;
     wire [31:0] instrF;
     wire stallF;
     
     // decode stage signals
-    // wire [31:0] instrD;
+    wire [31:0] instrD;
     wire equalD;
     wire [4:0] rsD, rtD, rdD;
     wire memwriteD, regwriteD, memtoregD, regdstD, alusrcD, se_zeD, branchD, start_multD, mult_signD;
@@ -29,9 +27,9 @@ module data_path(input clk, reset,
     wire [1:0] forwardaE, forwardbE;
 	
     // memory stage signals
-    wire regwriteM, memtoregM; //memwriteM
+    wire regwriteM, memtoregM, memwriteM;
     wire [4:0] writeregM;
-    //wire [31:0] writedataM, readdataM, outM;
+    wire [31:0] writedataM, readdataM, outM;
     
     // write-back stage signals
     wire regwriteW, memtoregW;
@@ -176,4 +174,4 @@ module sl16(input [15:0] a,
 	// shift left by 16
 	assign y = {a, 16'b0};
 
-endmodule
+endmodule 
