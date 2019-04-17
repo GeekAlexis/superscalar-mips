@@ -5,7 +5,7 @@ module data_memory(input clk, write,
 
   reg [31:0] ram [0:63]; //64 words memory
     
-  always @(posedge clk) begin
+  always @(negedge clk) begin
     if(write)
       ram[address[31:2]] <= write_data; //write data
     else
