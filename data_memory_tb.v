@@ -2,7 +2,7 @@
 
 module data_memory_tb;
 
-  reg clk = 0;
+  reg clk = 1;
   reg write = 1; //initially write to memory
   reg [31:0] address;
   reg [31:0] write_data;
