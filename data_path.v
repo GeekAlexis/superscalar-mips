@@ -70,7 +70,8 @@ module data_path(input clk, reset);
     mux3#(32) forward_muxbE(readdata2E, resultW, outM, forwardbE, writedataE);
     mux2#(32) alusrc_mux(writedataE, ext_immE, alusrcE, srcbE);
     ALU alu(srcaE, srcbE, alu_opE, aluoutE);
-    multiplier mult(clk, start_multE, mult_signE, srcaE, srcbE, {hiE, loE});
+    wire busy_multE;
+    multiplier mult(clk, start_multE, mult_signE, srcaE, srcbE, busy_multE, {hiE, loE});
     mux4#(32) out_muxE(aluoutE, sh_immE, loE, hiE, out_selE, outE);
     
     // memory stage logic
@@ -88,13 +89,22 @@ module data_path(input clk, reset);
     mux2#(32) memtoreg_muxW(outW, readdataW, memtoregW, resultW);
     
     // hazard unit
-    hazard_detector hd(clk, reset, branchD, memtoregE, regwriteE, memtoregM, regwriteM, regwriteW, start_multE, rsD, rtD, rsE, rtE, 
-                       writeregE, writeregM, writeregW, stallF, stallD, forwardaD, forwardbD, flushE, forwardaE, forwardbE);
-                
+    hazard_detector hd(//clk, reset,
+		       branchD, 
+		       memtoregE, regwriteE,
+		       memtoregM, regwriteM,
+		       regwriteW,
+		       start_multE, busy_multE,
+		       rsD, rtD, rsE, rtE,
+		       writeregE, writeregM, writeregW,
+		       stallF, stallD,
+		       forwardaD, forwardbD,
+		       flushE,
+		       forwardaE, forwardbE);
+
 endmodule
 
 // basic building blocks
-
 module register#(parameter width = 1)
                 (input clk, reset, en,
                  input [width - 1:0] d,
@@ -107,13 +117,6 @@ module register#(parameter width = 1)
             q <= d;
     end
     
-endmodule
-
-module adder(input [31:0] a, b,
-             output [31:0] out);
-             
-    assign out = a + b;
- 
 endmodule
 
 module mux2#(parameter width = 1)
@@ -148,30 +151,18 @@ module mux4#(parameter width = 1)
 	
 endmodule
 
-module signext(input [15:0] a,
-	           output [31:0] y);
-
-	assign y = {{16{a[15]}}, a};
-	
+module signext(input [15:0] a, output [31:0] y);
+  assign y = {{16{a[15]}}, a};	
 endmodule
 
-module zeroext(input [15:0] a,
-	           output [31:0] y);
-	       
-	assign y = {16'b0, a};
-
+module zeroext(input [15:0] a, output [31:0] y);	       
+  assign y = {16'b0, a};
 endmodule
 
-module sl2(input [31:0] a,
-	       output [31:0] y);
-	// shift left by 2
-	assign y = {a[29:0], 2'b0};
-
+module sl2(input [31:0] a, output [31:0] y); // shift left by 2
+  assign y = {a[29:0], 2'b0};
 endmodule
 
-module sl16(input [15:0] a,
-	       output [31:0] y);
-	// shift left by 16
-	assign y = {a, 16'b0};
-
+module sl16(input [15:0] a, output [31:0] y); // shift left by 16
+  assign y = {a, 16'b0};
 endmodule 
