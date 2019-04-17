@@ -6,7 +6,7 @@ module ALU_tb;
   reg [3:0] func;
   wire [31:0] aluout;
   
-  ALU u1(in1, in2, func, aluout);
+  ALU dut(in1, in2, func, aluout);
   
   initial begin
     
