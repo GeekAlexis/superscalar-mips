@@ -54,6 +54,7 @@ module data_memory_tb;
     
     address = 12;
     display; //read from address 12
+    display;
     $stop;
 
   end
