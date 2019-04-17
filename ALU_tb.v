@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module alu_tb;
+module ALU_tb;
   
   reg [31:0] in1, in2;
   reg [3:0] func;
