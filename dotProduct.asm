@@ -1,4 +1,5 @@
 .data
+	myArray: .space 4
 
 .text
 	addi $t1, $zero, 28
@@ -29,9 +30,11 @@
 	mult $t1, $t2
 	mflo $t3
 	add $t4, $t4, $t3 
+	sw $t4, myArray($zero)
 	
 	li $v0, 1
 	add $a0, $zero, $t4
+	
 	
 	syscall
 	
