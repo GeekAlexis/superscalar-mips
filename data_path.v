@@ -88,19 +88,22 @@ module data_path(input clk, reset);
     register#(71) pipeline_regW(clk, reset, 0, dW, qW);
     mux2#(32) memtoreg_muxW(outW, readdataW, memtoregW, resultW);
     
-    // hazard unit
-    hazard_detector hd(//clk, reset,
-		       branchD, 
-		       memtoregE, regwriteE,
-		       memtoregM, regwriteM,
-		       regwriteW,
-		       start_multE, busy_multE,
-		       rsD, rtD, rsE, rtE,
-		       writeregE, writeregM, writeregW,
-		       stallF, stallD,
-		       forwardaD, forwardbD,
-		       flushE,
-		       forwardaE, forwardbE);
+    // hazard detector
+    hazard_detector hd (branchD,
+		        memtoregE, regwriteE,
+		        memtoregM,
+		        regwriteW,
+		        start_multE, busy_multE, //let hazard unit know when mult is done
+		        rsD, rtD, rsE, rtE,
+		        writeregE, writeregM,
+		        stallF, stallD,
+		        flushE);
+    forwarding_unit fu (regwriteM,
+		        regwriteW,
+		        rsD, rtD, rsE, rtE,
+		        writeregM, writeregW,
+		        forwardaD, forwardbD,
+		        forwardaE, forwardbE);
 
 endmodule
 
