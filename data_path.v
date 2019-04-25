@@ -10,14 +10,14 @@ module data_path(input clk, reset);
     wire [31:0] instrD;
     wire equalD;
     wire [4:0] rsD, rtD, rdD;
-    wire memwriteD, regwriteD, memtoregD, regdstD, alusrcD, se_zeD, branchD, start_multD, mult_signD;
+    wire memreadD, memwriteD, regwriteD, memtoregD, regdstD, alusrcD, se_zeD, branchD, start_multD, mult_signD;
     wire [3:0] alu_opD;
     wire [1:0] out_selD, pcsrcD;
     wire [31:0] readdata1D, readdata2D, muxa_outD, muxb_outD, sh_immD, se_immD, ze_immD, ext_immD, sl2_outD, pcplus4D, pcbranchD, pcjumpD;
     wire stallD, forwardaD, forwardbD;
     
     // execute stage signals
-    wire memwriteE, regwriteE, memtoregE, regdstE, alusrcE, start_multE, mult_signE;
+    wire memreadE, memwriteE, regwriteE, memtoregE, regdstE, alusrcE, start_multE, mult_signE;
     wire [1:0] out_selE;
     wire [3:0] alu_opE;
     wire [4:0] rsE, rtE, rdE;
@@ -27,9 +27,15 @@ module data_path(input clk, reset);
     wire [1:0] forwardaE, forwardbE;
 	
     // memory stage signals
-    wire regwriteM, memtoregM, memwriteM;
+    wire regwriteM, memtoregM, memreadM, memwriteM;
     wire [4:0] writeregM;
     wire [31:0] writedataM, readdataM, outM;
+
+    wire mem_ready;
+    wire [127:0] data_from_mem;
+    wire hit, mem_read, mem_write, cache_stall;
+    wire [31:0] mem_addr;
+    wire [127:0] data_to_mem;
     
     // write-back stage signals
     wire regwriteW, memtoregW;
@@ -38,14 +44,14 @@ module data_path(input clk, reset);
     
     // fetch stage logic
     mux3#(32) pc_mux(pcplus4F, pcbranchD, pcjumpD, pcsrcD, pc_next);
-    register#(32) pc_reg(clk, reset, stallF, pc_next, pcF);
+    register#(32) pc_reg(clk, reset, stallF | cache_stall, pc_next, pcF);
     inst_memory imem(pcF, instrF);
     assign pcplus4F = pcF + 4;
     
     // decode stage logic
-    register#(64) pipeline_regD(clk, reset | pcsrcD[0] | pcsrcD[1], stallD, {instrF, pcplus4F}, {instrD, pcplus4D});
-    controller control(instrD[31:26], instrD[5:0], equalD, memwriteD, regwriteD, memtoregD, regdstD, alusrcD, se_zeD, branchD, start_multD, mult_signD, alu_opD, out_selD, pcsrcD);
-    reg_file rf(clk, reset, regwriteW, instrD[25:21], instrD[21:16], writeregW, resultW, readdata1D, readdata2D);
+    register#(64) pipeline_regD(clk, reset | pcsrcD[0] | pcsrcD[1], stallD | cache_stall , {instrF, pcplus4F}, {instrD, pcplus4D});
+    controller control(instrD[31:26], instrD[5:0], equalD, memreadD, memwriteD, regwriteD, memtoregD, regdstD, alusrcD, se_zeD, branchD, start_multD, mult_signD, alu_opD, out_selD, pcsrcD);
+    reg_file rf(clk, reset, regwriteW, instrD[25:21], instrD[20:16], writeregW, resultW, readdata1D, readdata2D);
     assign rsD = instrD[25:21];
     assign rtD = instrD[20:16];
     assign rdD = instrD[15:11];
@@ -61,10 +67,10 @@ module data_path(input clk, reset);
     assign pcjumpD = {pcplus4D[31:28], instrD[25:0], 2'b0};
     
     // execute stage logic
-    wire [155:0] dE, qE;
-    assign dE = {memwriteD, regwriteD, memtoregD, regdstD, alusrcD, alu_opD, out_selD, start_multD, mult_signD, readdata1D, readdata2D, rsD, rtD, rdD, sh_immD, ext_immD};
-    assign {memwriteE, regwriteE, memtoregE, regdstE, alusrcE, alu_opE, out_selE, start_multE, mult_signE, readdata1E, readdata2E, rsE, rtE, rdE, sh_immE, ext_immE} = qE;
-    register#(156) pipeline_regE(clk, reset | flushE, 0, dE, qE);
+    wire [156:0] dE, qE;
+    assign dE = {memreadD, memwriteD, regwriteD, memtoregD, regdstD, alusrcD, alu_opD, out_selD, start_multD, mult_signD, readdata1D, readdata2D, rsD, rtD, rdD, sh_immD, ext_immD};
+    assign {memreadE, memwriteE, regwriteE, memtoregE, regdstE, alusrcE, alu_opE, out_selE, start_multE, mult_signE, readdata1E, readdata2E, rsE, rtE, rdE, sh_immE, ext_immE} = qE;
+    register#(157) pipeline_regE(clk, reset | flushE, cache_stall, dE, qE);
     mux2#(5) regdst_mux(rtE, rdE, regdstE, writeregE);
     mux3#(32) forward_muxaE(readdata1E, resultW, outM, forwardaE, srcaE);
     mux3#(32) forward_muxbE(readdata2E, resultW, outM, forwardbE, writedataE);
@@ -75,17 +81,33 @@ module data_path(input clk, reset);
     mux4#(32) out_muxE(aluoutE, sh_immE, loE, hiE, out_selE, outE);
     
     // memory stage logic
-    wire [71:0] dM, qM;
-    assign dM = {memwriteE, regwriteE, memtoregE, outE, writedataE, writeregE};
-    assign {memwriteM, regwriteM, memtoregM, outM, writedataM, writeregM} = qM;
-    register#(72) pipeline_regM(clk, reset, 0, dM, qM);
-    data_memory dmem(clk, memwriteM, outM, writedataM, readdataM);
+    wire [72:0] dM, qM;
+    assign dM = {memreadE, memwriteE, regwriteE, memtoregE, outE, writedataE, writeregE};
+    assign {memreadM, memwriteM, regwriteM, memtoregM, outM, writedataM, writeregM} = qM;
+    register#(73) pipeline_regM(clk, reset, cache_stall, dM, qM);
+    //data_memory dmem(clk, memwriteM, outM, writedataM, readdataM);
+    
+ 
+    cache_wb cache(clk, reset, mem_ready, 
+                   memreadM, memwriteM,
+                   outM, writedataM,
+                   data_from_mem,
+                   hit, mem_read, mem_write, cache_stall,
+                   mem_addr, 
+                   readdataM,
+                   data_to_mem);
+	
+    data_memory mem(clk, mem_read, mem_write,
+                    mem_addr,
+                    data_to_mem,
+                    mem_ready,
+                    data_from_mem);
     
     // write-back stage logic
     wire [70:0] dW, qW;
     assign dW = {regwriteM, memtoregM, readdataM, outM, writeregM};
     assign {regwriteW, memtoregW, readdataW, outW, writeregW} = qW;
-    register#(71) pipeline_regW(clk, reset, 0, dW, qW);
+    register#(71) pipeline_regW(clk, reset, cache_stall, dW, qW);
     mux2#(32) memtoreg_muxW(outW, readdataW, memtoregW, resultW);
     
     // hazard detector
