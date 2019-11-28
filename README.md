@@ -1,1 +1,1 @@
-# Pipelined-MIPS
+# Superscalar-MIPS
